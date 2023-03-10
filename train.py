@@ -25,7 +25,7 @@ image_column = 'image'
 caption_column = 'text'
 
 output_dir = 'output'
-gradient_accumulation_steps = 4
+gradient_accumulation_steps = 1
 model_name = 'runwayml/stable-diffusion-v1-5'
 revision = None
 mixed_precision = 'fp16'
@@ -97,6 +97,7 @@ def main():
     unet.set_attn_processor(ia3_attn_procs)
 
     # unet.enable_xformers_memory_efficient_attention()
+
     optimizer_cls = bnb.optim.AdamW8bit
 
     ia3_layers = AttnProcsLayers(unet.attn_processors)
@@ -197,14 +198,6 @@ def main():
     progress_bar = tqdm(range(global_step, max_train_steps),
                         disable=not accelerator.is_local_main_process)
     progress_bar.set_description("Steps")
-
-    def save_attn():
-        accelerator.wait_for_everyone()
-        if accelerator.is_main_process:
-            unet = unet.to(torch.float32)
-            attn_processors = unet.attn_processors
-            with open(os.path.join(output_dir, "attn_processors.pkl"), "wb") as f:
-                pickle.dump(attn_processors, f)
 
     for epoch in range(first_epoch, num_train_epochs):
         unet.train()
@@ -316,7 +309,12 @@ def main():
 
 
     # save attention processors
-    save_attn()
+    accelerator.wait_for_everyone()
+    if accelerator.is_main_process:
+        unet = unet.to(torch.float32)
+        attn_processors = unet.attn_processors
+        with open(os.path.join(output_dir, "attn_processors.pkl"), "wb") as f:
+            pickle.dump(attn_processors, f)
 
     
     # free memory

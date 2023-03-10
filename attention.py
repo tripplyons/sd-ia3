@@ -10,7 +10,7 @@ class IA3CrossAttnProcessor(nn.Module):
         self.weight = nn.Parameter(torch.empty((hidden_size,)))
         self.bias = nn.Parameter(torch.empty((hidden_size,)))
 
-        nn.init.ones_(self.weight)
+        nn.init.zeros_(self.weight)
         nn.init.zeros_(self.bias)
 
 
@@ -42,7 +42,6 @@ class IA3CrossAttnProcessor(nn.Module):
 
         # modulation
         original_dtype = hidden_states.dtype
-        hidden_states = self.weight * hidden_states + self.bias
-        hidden_states = hidden_states.to(original_dtype)
+        hidden_states = hidden_states + (self.weight * hidden_states + self.bias).to(original_dtype)
 
         return hidden_states

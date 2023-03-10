@@ -20,5 +20,5 @@ Inference script in [`infer.py`](/infer.py) to load the changes and generate ima
 - [ ] Add CLI arguments for scripts
 - [ ] Save state dict instead of model
 - [ ] Give example results and saved models
-- [ ] Reparameterize to initialize with all zeros to fix weight decay
+- [x] Reparameterize to initialize with all zeros to fix weight decay
 - [ ] Add requirements.txt
