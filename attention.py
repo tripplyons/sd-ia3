@@ -9,13 +9,13 @@ class IA3CrossAttnProcessor(nn.Module):
 
         self.hidden_size = hidden_size
 
-        self.weight = nn.Parameter(torch.empty((hidden_size,)))
-        self.bias = nn.Parameter(torch.empty((hidden_size,)))
+        self.key_vector = nn.Parameter(torch.empty((hidden_size,)))
+        self.value_vector = nn.Parameter(torch.empty((hidden_size,)))
 
         # start with zeros
         # this will start with no change to the base model
-        nn.init.zeros_(self.weight)
-        nn.init.zeros_(self.bias)
+        nn.init.zeros_(self.key_vector)
+        nn.init.zeros_(self.value_vector)
 
     def __call__(
         self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None
@@ -32,6 +32,11 @@ class IA3CrossAttnProcessor(nn.Module):
         key = attn.to_k(encoder_hidden_states)
         value = attn.to_v(encoder_hidden_states)
 
+        # (IA)^3 changes
+        original_dtype = key.dtype
+        key = key + (self.key_vector * key).to(original_dtype)
+        value = value + (self.value_vector * value).to(original_dtype)
+
         key = attn.head_to_batch_dim(key)
         value = attn.head_to_batch_dim(value)
 
@@ -43,11 +48,6 @@ class IA3CrossAttnProcessor(nn.Module):
         hidden_states = attn.to_out[0](hidden_states)
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
-
-        # (IA)^3 changes
-        original_dtype = hidden_states.dtype
-        hidden_states = hidden_states + \
-            (self.weight * hidden_states + self.bias).to(original_dtype)
 
         return hidden_states
 

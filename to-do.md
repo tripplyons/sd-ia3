@@ -6,3 +6,4 @@
 - [x] Reparameterize to initialize with all zeros to fix weight decay
 - [x] Add requirements.txt
 - [x] Add comments
+- [x] Match the method used in the (IA)^3 paper

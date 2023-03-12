@@ -11,6 +11,18 @@ Based on these papers:
 
 Implemented in [diffusers](https://github.com/huggingface/diffusers) using an attention processor in [`attention.py`](/attention.py).
 
+## Comparison to full fine-tuning
+
+(IA)^3 has trade-offs similar to LoRA when comparing to full fine-tuning.
+
+One major difference to LoRA is that (IA)^3 uses much less parameters. In general, it will most likely be faster and smaller, but less expressive.
+
+- Faster training
+- Smaller file size (~222 KB for Stable Diffusion 1.5)
+- Can be swapped in and out of the base model during inference
+- Can be loaded into fine-tuned models that have the same architecture
+- Can be merged with the weights of the base model
+
 ## Installation
 
 First create an environment and [install PyTorch](https://pytorch.org/get-started/locally/).
