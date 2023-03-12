@@ -18,7 +18,7 @@ import random
 import torch.nn.functional as F
 import pickle
 
-from attention import IA3CrossAttnProcessor
+from attention import IA3CrossAttnProcessor, save_attn_processors, load_attn_processors
 
 dataset_name = 'lambdalabs/pokemon-blip-captions'
 image_column = 'image'
@@ -307,14 +307,13 @@ def main():
                 del pipeline
                 torch.cuda.empty_cache()
 
+    accelerator.wait_for_everyone()
 
     # save attention processors
-    accelerator.wait_for_everyone()
     if accelerator.is_main_process:
         unet = unet.to(torch.float32)
-        attn_processors = unet.attn_processors
-        with open(os.path.join(output_dir, "attn_processors.pkl"), "wb") as f:
-            pickle.dump(attn_processors, f)
+        save_attn_processors(unet, 'cuda', torch.float32, os.path.join(output_dir, "attn_processors.pt"))
+        
 
     
     # free memory
@@ -332,9 +331,7 @@ def main():
     pipeline = pipeline.to(accelerator.device)
 
     # load attention processors
-    with open(os.path.join(output_dir, "attn_processors.pkl"), "rb") as f:
-        attn_processors = pickle.load(f)
-        pipeline.unet.set_attn_processor(attn_processors)
+    load_attn_processors(pipeline.unet, 'cuda', torch.float32, os.path.join(output_dir, "attn_processors.pt"))
 
     # run inference
     generator = torch.Generator(device=accelerator.device)

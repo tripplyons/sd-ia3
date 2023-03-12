@@ -2,6 +2,7 @@ import os
 from diffusers import DiffusionPipeline
 import pickle
 import torch
+from attention import load_attn_processors
 
 model_name = 'runwayml/stable-diffusion-v1-5'
 device = 'cuda'
@@ -12,10 +13,7 @@ pipeline = DiffusionPipeline.from_pretrained(
     model_name, torch_dtype=torch.float16
 ).to(device)
 
-with open("output/attn_processors.pkl", "rb") as f:
-    attn_processors = pickle.load(f)
-    pipeline.unet.set_attn_processor(attn_processors)
-
+load_attn_processors(pipeline.unet, device, torch.float32, "output/attn_processors.pt")
 
 generator = torch.Generator(device=device)
 images = []
