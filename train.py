@@ -6,7 +6,6 @@ import math
 from tqdm.auto import tqdm
 from accelerate import Accelerator
 from datasets import load_dataset
-import diffusers
 from torchvision import transforms
 from diffusers import AutoencoderKL, DDPMScheduler, DiffusionPipeline, UNet2DConditionModel
 from diffusers.loaders import AttnProcsLayers
@@ -16,14 +15,14 @@ import bitsandbytes as bnb
 import numpy as np
 import random
 import torch.nn.functional as F
-import pickle
 
 from attention import IA3CrossAttnProcessor, save_attn_processors, load_attn_processors
+
+# parameters
 
 dataset_name = 'lambdalabs/pokemon-blip-captions'
 image_column = 'image'
 caption_column = 'text'
-
 output_dir = 'output'
 gradient_accumulation_steps = 1
 model_name = 'runwayml/stable-diffusion-v1-5'
@@ -48,11 +47,14 @@ validation_prompt = 'robotic cat with wings'
 validation_epochs = 1
 num_validation_images = 4
 
+
 def main():
     accelerator = Accelerator(
         gradient_accumulation_steps=gradient_accumulation_steps,
         mixed_precision=mixed_precision
     )
+
+    # models
 
     noise_scheduler = DDPMScheduler.from_pretrained(
         model_name, subfolder="scheduler"
@@ -70,13 +72,19 @@ def main():
         model_name, subfolder="unet", revision=revision
     )
 
+    # only train the attention processors
+
     unet.requires_grad_(False)
     vae.requires_grad_(False)
     text_encoder.requires_grad_(False)
 
+    # move to GPU
+
     unet.to(accelerator.device, dtype=weight_dtype)
     vae.to(accelerator.device, dtype=weight_dtype)
     text_encoder.to(accelerator.device, dtype=weight_dtype)
+
+    # create attention processors
 
     ia3_attn_procs = {}
     for name in unet.attn_processors.keys():
@@ -96,8 +104,6 @@ def main():
 
     unet.set_attn_processor(ia3_attn_procs)
 
-    # unet.enable_xformers_memory_efficient_attention()
-
     optimizer_cls = bnb.optim.AdamW8bit
 
     ia3_layers = AttnProcsLayers(unet.attn_processors)
@@ -109,6 +115,8 @@ def main():
         weight_decay=adam_weight_decay,
         eps=adam_epsilon,
     )
+
+    # load dataset and transforms
 
     dataset = load_dataset(
         dataset_name,
@@ -182,7 +190,7 @@ def main():
         num_warmup_steps=lr_warmup_steps * gradient_accumulation_steps,
         num_training_steps=max_train_steps * gradient_accumulation_steps,
     )
-    
+
     ia3_layers, optimizer, train_dataloader, lr_scheduler = accelerator.prepare(
         ia3_layers, optimizer, train_dataloader, lr_scheduler
     )
@@ -198,6 +206,8 @@ def main():
     progress_bar = tqdm(range(global_step, max_train_steps),
                         disable=not accelerator.is_local_main_process)
     progress_bar.set_description("Steps")
+
+    # training loop
 
     for epoch in range(first_epoch, num_train_epochs):
         unet.train()
@@ -275,6 +285,8 @@ def main():
             if global_step >= max_train_steps:
                 break
 
+        # validation check
+
         if accelerator.is_main_process:
             if validation_prompt is not None and epoch % validation_epochs == 0:
                 # create pipeline
@@ -296,7 +308,7 @@ def main():
                         pipeline(
                             validation_prompt, num_inference_steps=30, generator=generator).images[0]
                     )
-                
+
                 # save images
                 save_path = os.path.join(
                     output_dir, f"validation-images-{global_step}")
@@ -312,10 +324,9 @@ def main():
     # save attention processors
     if accelerator.is_main_process:
         unet = unet.to(torch.float32)
-        save_attn_processors(unet, 'cuda', torch.float32, os.path.join(output_dir, "attn_processors.pt"))
-        
+        save_attn_processors(unet, 'cuda', torch.float32,
+                             os.path.join(output_dir, "attn_processors.pt"))
 
-    
     # free memory
     del unet
     del vae
@@ -331,14 +342,16 @@ def main():
     pipeline = pipeline.to(accelerator.device)
 
     # load attention processors
-    load_attn_processors(pipeline.unet, 'cuda', torch.float32, os.path.join(output_dir, "attn_processors.pt"))
+    load_attn_processors(pipeline.unet, 'cuda', torch.float32,
+                         os.path.join(output_dir, "attn_processors.pt"))
 
     # run inference
     generator = torch.Generator(device=accelerator.device)
     images = []
     for _ in range(num_validation_images):
-        images.append(pipeline(validation_prompt, num_inference_steps=30, generator=generator).images[0])
-    
+        images.append(pipeline(validation_prompt,
+                      num_inference_steps=30, generator=generator).images[0])
+
     # save images
     save_path = os.path.join(output_dir, f"final-images")
     os.makedirs(save_path, exist_ok=True)
@@ -346,6 +359,7 @@ def main():
         image.save(os.path.join(save_path, f"{i}.png"))
 
     accelerator.end_training()
+
 
 if __name__ == "__main__":
     main()

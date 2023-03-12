@@ -11,10 +11,6 @@ Based on these papers:
 
 Implemented in [diffusers](https://github.com/huggingface/diffusers) using an attention processor in [`attention.py`](/attention.py).
 
-Training script in [`train.py`](/train.py). Based on [this example script for diffusers](https://github.com/huggingface/diffusers/blob/main/examples/text_to_image/train_text_to_image_lora.py).
-
-Inference script in [`infer.py`](/infer.py) to load the changes and generate images.
-
 ## Installation
 
 First create an environment and [install PyTorch](https://pytorch.org/get-started/locally/).
@@ -25,10 +21,22 @@ Then install the pip dependencies:
 pip install -r requirements.txt
 ```
 
-## To-do
+## Training
 
-- [ ] Add CLI arguments for scripts
-- [x] Save state dict instead of model
-- [ ] Give example results and saved models
-- [x] Reparameterize to initialize with all zeros to fix weight decay
-- [x] Add requirements.txt
+Training script in [`train.py`](/train.py). Based on [this example script for diffusers](https://github.com/huggingface/diffusers/blob/main/examples/text_to_image/train_text_to_image_lora.py).
+
+Currently you can change the parameters by editing the variables at the top of the file and running the script:
+
+```bash
+python train.py
+```
+
+## Inference
+
+Inference script in [`infer.py`](/infer.py) to load the changes and generate images.
+
+Currently you can change the parameters by editing the variables at the top of the file and running the script:
+
+```bash
+python infer.py
+```

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 
+# based on LoRACrossAttnProcessor
 class IA3CrossAttnProcessor(nn.Module):
     def __init__(self, hidden_size):
         super().__init__()
@@ -11,6 +12,8 @@ class IA3CrossAttnProcessor(nn.Module):
         self.weight = nn.Parameter(torch.empty((hidden_size,)))
         self.bias = nn.Parameter(torch.empty((hidden_size,)))
 
+        # start with zeros
+        # this will start with no change to the base model
         nn.init.zeros_(self.weight)
         nn.init.zeros_(self.bias)
 
@@ -41,7 +44,7 @@ class IA3CrossAttnProcessor(nn.Module):
         # dropout
         hidden_states = attn.to_out[1](hidden_states)
 
-        # modulation
+        # (IA)^3 changes
         original_dtype = hidden_states.dtype
         hidden_states = hidden_states + \
             (self.weight * hidden_states + self.bias).to(original_dtype)
@@ -49,6 +52,7 @@ class IA3CrossAttnProcessor(nn.Module):
         return hidden_states
 
 
+# save to file
 def save_attn_processors(unet, device, dtype, save_path):
     attn_processors = unet.attn_processors
     keys = list(attn_processors.keys())
@@ -70,6 +74,7 @@ def save_attn_processors(unet, device, dtype, save_path):
     torch.save(output_dict, save_path)
 
 
+# load from file
 def load_attn_processors(unet, device, dtype, save_path):
     input_dict = torch.load(save_path)
     weights_dict = input_dict['weights']
