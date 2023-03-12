@@ -15,10 +15,20 @@ Training script in [`train.py`](/train.py). Based on [this example script for di
 
 Inference script in [`infer.py`](/infer.py) to load the changes and generate images.
 
+## Installation
+
+First create an environment and [install PyTorch](https://pytorch.org/get-started/locally/).
+
+Then install the pip dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
 ## To-do
 
 - [ ] Add CLI arguments for scripts
 - [x] Save state dict instead of model
 - [ ] Give example results and saved models
 - [x] Reparameterize to initialize with all zeros to fix weight decay
-- [ ] Add requirements.txt
+- [x] Add requirements.txt
