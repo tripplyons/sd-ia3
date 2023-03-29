@@ -22,6 +22,7 @@ One major difference to LoRA is that (IA)^3 uses much less parameters. In genera
 - Can be swapped in and out of the base model during inference
 - Can be loaded into fine-tuned models that have the same architecture
 - Can be merged with the weights of the base model
+  - This is only possible when `learn_biases=False`
 
 ## Installation
 

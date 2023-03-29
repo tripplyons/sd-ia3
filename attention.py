@@ -4,18 +4,23 @@ import torch.nn as nn
 
 # based on LoRACrossAttnProcessor
 class IA3CrossAttnProcessor(nn.Module):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, learn_biases=True):
         super().__init__()
 
         self.hidden_size = hidden_size
+        self.learn_biases = learn_biases
 
-        self.key_vector = nn.Parameter(torch.empty((hidden_size,)))
-        self.value_vector = nn.Parameter(torch.empty((hidden_size,)))
+        self.learned_key_weights = nn.Parameter(torch.empty((hidden_size,)))
+        self.learned_value_weights = nn.Parameter(torch.empty((hidden_size,)))
+        self.learned_key_biases = nn.Parameter(torch.empty((hidden_size,)), requires_grad=learn_biases)
+        self.learned_value_biases = nn.Parameter(torch.empty((hidden_size,)), requires_grad=learn_biases)
 
         # start with zeros
         # this will start with no change to the base model
-        nn.init.zeros_(self.key_vector)
-        nn.init.zeros_(self.value_vector)
+        nn.init.zeros_(self.learned_key_weights)
+        nn.init.zeros_(self.learned_value_weights)
+        nn.init.zeros_(self.learned_key_biases)
+        nn.init.zeros_(self.learned_value_biases)
 
     def __call__(
         self, attn, hidden_states, encoder_hidden_states=None, attention_mask=None
@@ -34,8 +39,10 @@ class IA3CrossAttnProcessor(nn.Module):
 
         # (IA)^3 changes
         original_dtype = key.dtype
-        key = key + (self.key_vector * key).to(original_dtype)
-        value = value + (self.value_vector * value).to(original_dtype)
+        key = key + (self.learned_key_weights * key).to(original_dtype)
+        value = value + (self.learned_value_weights * value).to(original_dtype)
+        key = key + (self.learned_key_biases).to(original_dtype)
+        value = value + (self.learned_value_biases).to(original_dtype)
 
         key = attn.head_to_batch_dim(key)
         value = attn.head_to_batch_dim(value)
@@ -63,7 +70,8 @@ def save_attn_processors(unet, device, dtype, save_path):
         processor = attn_processors[key].to(device).to(dtype)
         weights_dict[key] = processor.state_dict()
         parameters_dict[key] = {
-            'hidden_size': processor.hidden_size
+            'hidden_size': processor.hidden_size,
+            'learn_biases' : processor.learn_biases
         }
 
     output_dict = {
@@ -86,7 +94,8 @@ def load_attn_processors(unet, device, dtype, save_path):
 
     for key in keys:
         attn_processors[key] = IA3CrossAttnProcessor(
-            hidden_size=parameters_dict[key]['hidden_size']
+            hidden_size=parameters_dict[key]['hidden_size'],
+            learn_biases=parameters_dict[key]['learn_biases']
         ).to(device).to(dtype)
         attn_processors[key].load_state_dict(weights_dict[key])
 

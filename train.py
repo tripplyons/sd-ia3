@@ -11,7 +11,6 @@ from diffusers import AutoencoderKL, DDPMScheduler, DiffusionPipeline, UNet2DCon
 from diffusers.loaders import AttnProcsLayers
 from transformers import CLIPTextModel, CLIPTokenizer
 from diffusers.optimization import get_scheduler
-import bitsandbytes as bnb
 import numpy as np
 import random
 import torch.nn.functional as F
@@ -46,6 +45,9 @@ checkpointing_steps = 500
 validation_prompt = 'robotic cat with wings'
 validation_epochs = 1
 num_validation_images = 4
+resume_load_path = 'output/attn_processors.pt'
+learn_biases = True
+use_8bit_optimizer = True
 
 
 def main():
@@ -84,27 +86,35 @@ def main():
     vae.to(accelerator.device, dtype=weight_dtype)
     text_encoder.to(accelerator.device, dtype=weight_dtype)
 
-    # create attention processors
+    # create or load attention processors
 
-    ia3_attn_procs = {}
-    for name in unet.attn_processors.keys():
-        if name.startswith("mid_block"):
-            hidden_size = unet.config.block_out_channels[-1]
-        elif name.startswith("up_blocks"):
-            block_id = int(name[len("up_blocks.")])
-            hidden_size = list(reversed(unet.config.block_out_channels))[
-                block_id]
-        elif name.startswith("down_blocks"):
-            block_id = int(name[len("down_blocks.")])
-            hidden_size = unet.config.block_out_channels[block_id]
+    if resume_load_path is not None:
+        load_attn_processors(unet, 'cuda', torch.float32, resume_load_path)
+    else:
+        ia3_attn_procs = {}
+        for name in unet.attn_processors.keys():
+            if name.startswith("mid_block"):
+                hidden_size = unet.config.block_out_channels[-1]
+            elif name.startswith("up_blocks"):
+                block_id = int(name[len("up_blocks.")])
+                hidden_size = list(reversed(unet.config.block_out_channels))[
+                    block_id]
+            elif name.startswith("down_blocks"):
+                block_id = int(name[len("down_blocks.")])
+                hidden_size = unet.config.block_out_channels[block_id]
 
-        ia3_attn_procs[name] = IA3CrossAttnProcessor(
-            hidden_size=hidden_size
-        ).to(torch.float32)
+            ia3_attn_procs[name] = IA3CrossAttnProcessor(
+                hidden_size=hidden_size,
+                learn_biases=learn_biases
+            ).to(torch.float32)
 
-    unet.set_attn_processor(ia3_attn_procs)
+        unet.set_attn_processor(ia3_attn_procs)
 
-    optimizer_cls = bnb.optim.AdamW8bit
+    if use_8bit_optimizer:
+        import bitsandbytes as bnb
+        optimizer_cls = bnb.optim.AdamW8bit
+    else:
+        optimizer_cls = torch.optim.AdamW
 
     ia3_layers = AttnProcsLayers(unet.attn_processors)
 
@@ -277,6 +287,11 @@ def main():
                         save_path = os.path.join(
                             output_dir, f"checkpoint-{global_step}")
                         accelerator.save_state(save_path)
+
+                        # also save the attention processors by themselves
+                        save_attn_processors(unet, 'cuda', torch.float32,
+                             os.path.join(save_path, "attn_processors.pt"))
+
 
             logs = {"step_loss": loss.detach().item(
             ), "lr": lr_scheduler.get_last_lr()[0]}
