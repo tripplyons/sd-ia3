@@ -37,7 +37,7 @@ cache_dir = 'cache'
 resolution = 512
 train_batch_size = 1
 dataloader_num_workers = 1
-num_train_epochs = 10
+num_train_epochs = 25
 max_grad_norm = 1.0
 lr_warmup_steps = 500
 lr_scheduler_type = 'constant'
@@ -45,9 +45,9 @@ checkpointing_steps = 500
 validation_prompt = 'robotic cat with wings'
 validation_epochs = 1
 num_validation_images = 4
-resume_load_path = 'output/attn_processors.pt'
+resume_load_path = None
 learn_biases = True
-use_8bit_optimizer = True
+use_8bit_optimizer = False
 
 
 def main():
