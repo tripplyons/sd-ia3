@@ -4,7 +4,7 @@ Parameter-efficient fine-tuning of Stable Diffusion using (IA)^3.
 
 ## YouTube Video Explanation
 
-[![YouTube Video Explanation](https://img.youtube.com/vi/M5gjAthTwho/0.jpg)](https://www.youtube.com/watch?v=1ZQYQY4Z0qo)
+[![YouTube Video Explanation](https://img.youtube.com/vi/M5gjAthTwho/0.jpg)](https://www.youtube.com/watch?v=M5gjAthTwho)
 
 ## Example
 
