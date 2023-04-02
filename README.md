@@ -2,11 +2,19 @@
 
 Parameter-efficient fine-tuning of Stable Diffusion using (IA)^3.
 
+## YouTube Video Explanation
+
+[![YouTube Video Explanation](https://img.youtube.com/vi/M5gjAthTwho/0.jpg)](https://www.youtube.com/watch?v=1ZQYQY4Z0qo)
+
+## Example
+
 | Before Fine-Tuning | After Fine-Tuning |
 | --- | --- |
 | ![Donald Trump](/docs/no-adapter-example.png) | ![Donald Trump](/docs/adapter-example.png) |
 
-The prompt is "donald trump", and the model is fine-tuned on [pokemon-blip-captions](https://huggingface.co/datasets/lambdalabs/pokemon-blip-captions)
+The prompt is "donald trump", and the model is fine-tuned on [pokemon-blip-captions](https://huggingface.co/datasets/lambdalabs/pokemon-blip-captions) for 25 epochs.
+
+## Description
 
 Based on these papers:
 
@@ -22,7 +30,7 @@ Implemented in [diffusers](https://github.com/huggingface/diffusers) using an at
 One major difference to LoRA is that (IA)^3 uses much less parameters. In general, it will most likely be faster and smaller, but less expressive.
 
 - Faster training
-- Smaller file size (~222 KB for Stable Diffusion 1.5)
+- Smaller file size (~222 KB for Stable Diffusion 1.5 when `learn_biases=False`, about twice as much otherwise)
 - Can be swapped in and out of the base model during inference
 - Can be loaded into fine-tuned models that have the same architecture
 - Can be merged with the weights of the base model
