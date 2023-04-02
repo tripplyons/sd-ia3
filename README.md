@@ -2,12 +2,16 @@
 
 Parameter-efficient fine-tuning of Stable Diffusion using (IA)^3.
 
+| Before Fine-Tuning | After Fine-Tuning |
+| --- | --- |
+| ![Donald Trump](/docs/no-adapter-example.png) | ![Donald Trump](/docs/adapter-example.png) |
+
+The prompt is "donald trump", and the model is fine-tuned on [pokemon-blip-captions](https://huggingface.co/datasets/lambdalabs/pokemon-blip-captions)
+
 Based on these papers:
 
-- [Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning](https://arxiv.org/abs/2205.05638)
-- [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752)
-
-**This repository is currently a work in progress.**
+- (IA)^3: [Few-Shot Parameter-Efficient Fine-Tuning is Better and Cheaper than In-Context Learning](https://arxiv.org/abs/2205.05638)
+- Stable Diffusion: [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752)
 
 Implemented in [diffusers](https://github.com/huggingface/diffusers) using an attention processor in [`attention.py`](/attention.py).
 
@@ -22,7 +26,8 @@ One major difference to LoRA is that (IA)^3 uses much less parameters. In genera
 - Can be swapped in and out of the base model during inference
 - Can be loaded into fine-tuned models that have the same architecture
 - Can be merged with the weights of the base model
-  - This is only possible when `learn_biases=False`
+  - Only possible when `learn_biases=False` without changing the architecture
+  - Not currently implemented in this repo
 
 ## Installation
 
@@ -33,6 +38,8 @@ Then install the pip dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+Currently, bitsandbytes only supports Linux, so fine-tuning on Windows requires more VRAM.
 
 ## Training
 
