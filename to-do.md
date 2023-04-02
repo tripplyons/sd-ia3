@@ -1,5 +1,6 @@
 # To-Do
 
+- [x] Add option for learned bias vectors
 - [ ] Add CLI arguments for scripts
 - [x] Save state dict instead of model
 - [ ] Give example results and saved models
